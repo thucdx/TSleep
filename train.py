@@ -82,7 +82,7 @@ def train_modified_deep_sleep_net(fold_ids, data_files, total_fold, output_dir):
                 data_test = data_test.squeeze(-1)
 
             fn_fold.fit(os_train, os_label,
-                        epochs=1, # FIXME: change back to 30 before submit!!!
+                        epochs=30, # FIXME: change back to 30 before submit!!!
                         validation_split=0.4,
                         batch_size=128,
                         callbacks=fn_fold_cbs)
@@ -121,7 +121,7 @@ def train_modified_deep_sleep_net(fold_ids, data_files, total_fold, output_dir):
             print_debug("Second phase training")
             srn_fold.fit(data_train, # train on sequential data, not the oversampled one
                          label_train,
-                         epochs=1, # FIXME: change to 3 before submit
+                         epochs=3, # FIXME: change to 3 before submit
                          validation_split=0.4,
                          shuffle=False,
                          batch_size=128,
@@ -210,7 +210,7 @@ def train_modified_sleep_eeg_net(fold_ids, data_files, total_fold, output_dir):
             print_debug("Training")
             modifiedSleepEEGModel.fit(os_train,
                                       os_label,
-                                      epochs=2,  # FIXME: Change to 15 before submit
+                                      epochs=15,  # FIXME: Change to 15 before submit
                                       batch_size=256, # Consider change it to lower batch_size if the GPU has litle memory
                                       validation_split=0.4,
                                       callbacks=callbacks)
