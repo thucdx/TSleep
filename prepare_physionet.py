@@ -43,6 +43,14 @@ class_dict = {
     5: "UNKNOWN"
 }
 
+known_class_dict = {
+    0: "W",
+    1: "N1",
+    2: "N2",
+    3: "N3",
+    4: "REM"
+}
+
 ann2label = {
     "Sleep stage W": 0,
     "Sleep stage 1": 1,

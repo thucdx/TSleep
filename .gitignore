@@ -1,4 +1,5 @@
 data/**/*.edf
 data/**/*.npz
+output/**/*
 .idea
 *.pyc
