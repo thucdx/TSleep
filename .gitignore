@@ -1,0 +1,4 @@
+data/**/*.edf
+data/**/*.npz
+.idea
+*.pyc
