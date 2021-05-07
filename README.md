@@ -1,7 +1,8 @@
 ### TSleep - Automated Sleep Stage Scoring using Deep Learing
 
 -------
-
++ Final project of "**CS598. Deep Learning for Healthcare**" course at [University of Illinois at Urbana-Champaign](https://illinois.edu/)
++ Team: `thucd2@illinois.edu` (1 member)
 
 In this experiment, I construct two deep neural networks to score the sleep stage automatically. Both models are working on single-channel signals from Sleep Cassette study dataset in publicly available Sleep-EDF 2018 dataset. The first model comprises multiple convolutional neural networks (CNN) and bidirectional long short-term memory (Bi-LSTM) networks achieving overall accuracy of `75.4%`, an average macro F1-score of `67.8%` across all folds in 20-fold cross-validation and inter-rater reliability coefficient Cohen's kappa `κ = 0.66`. The second model is based on convolutional neural networks predicting with an average accuracy of `79%` and average macro F1-score of `75%` and `κ =0.70` in the same cross-validation procedure. The result shows that my model is comparable to state-of-the-art methods with hand-engineered features.
 
