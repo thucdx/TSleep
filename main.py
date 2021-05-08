@@ -1,31 +1,27 @@
-import argparse
 import os
-import logging
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+import argparse
+from argparse import RawTextHelpFormatter
 from models import ModifiedSleepEEGNet, FeatureNet, SequenceResidualNet
-import tensorflow as tf
+
 from preprocessing import *
 from metrics import *
 
-DEBUG = True
 
-physical_devices = tf.config.list_physical_devices('GPU')
-try:
-    tf.config.experimental.set_memory_growth(physical_devices[0], True)
-except:
-    # Invalid device or cannot modify virtual devices once initialized.
-    print("Could not use GPU!!!")
-
-
-def debug_f(f, *args):
-    if DEBUG:
-        f(*args)
-
-
-def print_debug(text):
-    debug_f(print, text)
+def config_gpu():
+    physical_devices = tf.config.list_physical_devices('GPU')
+    try:
+        tf.config.experimental.set_memory_growth(physical_devices[0], True)
+    except:
+        # Invalid device or cannot modify virtual devices once initialized.
+        print("Could not use GPU!!!")
 
 
 def train_modified_deep_sleep_net(fold_ids, data_files, total_fold, output_dir):
+    config_gpu()
+
     # model_name = "modified_sleep_eeg"
     if len(fold_ids) == 0:
         # all folds
@@ -37,21 +33,21 @@ def train_modified_deep_sleep_net(fold_ids, data_files, total_fold, output_dir):
         if 0 <= fold_idx < total_fold:
             print("### FOLD %d ###" % fold_idx)
 
-            print_debug("Extract dataset, testset for fold %d" % fold_idx)
+            print_debug("1. Extract dataset, testset for fold %d" % fold_idx)
             train, test = split_train_val(fold_idx, data_files, total_fold)
             data_train, label_train = train
             data_test, label_test = test
 
             # Oversampling
-            print_debug("Oversampling")
+            print_debug("2. Oversampling")
             os_train, os_label = get_balance_class_oversample(data_train, label_train)
 
             # Shuffling training set
-            print_debug("Shuffle training data")
+            print_debug("3. Shuffle training data")
             os_train, os_label = shuffle(os_train, os_label)
             # debug_f(info, os_train, os_label)
 
-            print_debug("First phase training")
+            print_debug("4. First phase training")
             fn_fold = FeatureNet()
             fn_fold.compile(
                 optimizer=tf.keras.optimizers.Adam(0.001),
@@ -82,13 +78,13 @@ def train_modified_deep_sleep_net(fold_ids, data_files, total_fold, output_dir):
                 data_test = data_test.squeeze(-1)
 
             fn_fold.fit(os_train, os_label,
-                        epochs=30, # FIXME: change back to 30 before submit!!!
+                        epochs=30,  # FIXME: change back to 30 before submit!!!
                         validation_split=0.4,
                         batch_size=128,
                         callbacks=fn_fold_cbs)
 
             # Save first-phase model
-            first_phase_save_path = "%s/1_model_fold_%d" % (output_dir ,fold_idx)
+            first_phase_save_path = "%s/1_model_fold_%d" % (output_dir, fold_idx)
             print_debug("Save first phase model to %s" % first_phase_save_path)
             fn_fold.save(first_phase_save_path)
 
@@ -118,10 +114,10 @@ def train_modified_deep_sleep_net(fold_ids, data_files, total_fold, output_dir):
                 srn_fold_checkpoint
             ]
 
-            print_debug("Second phase training")
-            srn_fold.fit(data_train, # train on sequential data, not the oversampled one
+            print_debug("5. Second phase training")
+            srn_fold.fit(data_train,  # train on sequential data, not the oversampled one
                          label_train,
-                         epochs=3, # FIXME: change to 3 before submit
+                         epochs=3,  # FIXME: change to 3 before submit
                          validation_split=0.4,
                          shuffle=False,
                          batch_size=128,
@@ -136,7 +132,7 @@ def train_modified_deep_sleep_net(fold_ids, data_files, total_fold, output_dir):
             confusion, acc, prec, f1 = check_model(srn_fold, data_test, label_test)
             kappa_score = cohen_kappa_score_from_confusion_matrix(confusion)
 
-            print_debug("EVALUATE FOR FOLD %d" % fold_idx)
+            print_debug("6. EVALUATE FOR FOLD %d" % fold_idx)
             print_single_result((confusion, acc, f1, kappa_score))
 
             # Store result
@@ -159,6 +155,8 @@ def train_modified_deep_sleep_net(fold_ids, data_files, total_fold, output_dir):
 
 
 def train_modified_sleep_eeg_net(fold_ids, data_files, total_fold, output_dir):
+    config_gpu()
+
     # model_name = "modified_sleep_eeg"
     if len(fold_ids) == 0:
         # all folds
@@ -170,17 +168,17 @@ def train_modified_sleep_eeg_net(fold_ids, data_files, total_fold, output_dir):
         if 0 <= fold_idx < total_fold:
             print("### FOLD %d ###" % fold_idx)
 
-            print_debug("Extract dataset, testset for fold %d" % fold_idx)
+            print_debug("1. Extract dataset, testset for fold %d" % fold_idx)
             train, test = split_train_val(fold_idx, data_files, total_fold)
             data_train, label_train = train
             data_test, label_test = test
 
             # Oversampling
-            print_debug("Oversampling")
+            print_debug("2. Oversampling")
             os_train, os_label = get_balance_class_oversample(data_train, label_train)
 
             # Shuffling training set
-            print_debug("Shuffle training data")
+            print_debug("3. Shuffle training data")
             os_train, os_label = shuffle(os_train, os_label)
             # debug_f(info, os_train, os_label)
 
@@ -207,11 +205,12 @@ def train_modified_sleep_eeg_net(fold_ids, data_files, total_fold, output_dir):
             ]
 
             # Training
-            print_debug("Training")
+            print_debug("4. Training")
             modifiedSleepEEGModel.fit(os_train,
                                       os_label,
                                       epochs=15,  # FIXME: Change to 15 before submit
-                                      batch_size=256, # Consider change it to lower batch_size if the GPU has litle memory
+                                      batch_size=256,
+                                      # Consider change it to lower batch_size if the GPU has litle memory
                                       validation_split=0.4,
                                       callbacks=callbacks)
 
@@ -224,7 +223,7 @@ def train_modified_sleep_eeg_net(fold_ids, data_files, total_fold, output_dir):
             confusion, acc, prec, f1 = check_model(modifiedSleepEEGModel, data_test, label_test)
             kappa_score = cohen_kappa_score_from_confusion_matrix(confusion)
 
-            print_debug("EVALUATE FOR FOLD %d" % fold_idx)
+            print_debug("5. EVALUATION ON TESTSET FOR FOLD %d" % fold_idx)
             print_single_result((confusion, acc, f1, kappa_score))
 
             # Store result
@@ -277,50 +276,81 @@ def print_single_result(single_result):
     print("CONFUSION MATRIX")
     print(confusion)
 
+
 def load_and_summarize(result_dir):
     result = np.load("%s/final_result" % result_dir, allow_pickle=True)
     print_summary_result(result)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data_dir", type=str,
-                        default="data/sc_eeg_fpz_cz",
-                        help="Directory contain extracted channels")
-    parser.add_argument("--output_dir", type=str,
-                        default="output/sc_eeg_fpz_cz",
-                        help="Directory to store model, progress")
-    parser.add_argument("--fold_ids", type=str,
-                        default="0",
-                        help="Fold/Folds to train, each valid fold from [0 to total_fold-1]."
-                             "\n- Can contain multiple folds, separate by comma `,`, for example: 0,1,2."
-                             "\n- -1 to train on all folds")
-    parser.add_argument("--model", type=str,
-                        default="mod_sleep_eeg",
-                        help="mod_sleep_eeg: Modified SleepEEG - using CNNS"
-                             "\nmod_deep_sleep: Modified DeepSleep - using CNNs + Bi-LSTMs")
-    parser.add_argument("--total_fold", type=int,
-                        default=20,
-                        help="Number of fold")
-
-    args = parser.parse_args()
+def training_mode(args):
     all_files = list_files(args.data_dir)
-    print("args: ", args)
-    fold_ids = [int(x) for x in args.fold_ids.split(",")]
+    fold_ids = [int(x.strip()) for x in args.fold_ids.split(",")]
     fold_ids = list(set(fold_ids))
     if -1 in fold_ids:
         fold_ids = []
     if args.model == "mod_sleep_eeg":
-        print("Training and evaluate result for ModifiedSleepEEG Net")
+        print("Training and evaluate result for ModifiedSleepEEG Network")
         train_modified_sleep_eeg_net(fold_ids, all_files, args.total_fold, args.output_dir + "/modified_sleep_eeg")
     elif args.model == "mod_deep_sleep":
-        print("Training and evaluate result for ModifiedDeepSleep")
+        print("Training and evaluate result for ModifiedDeepSleep Network")
         train_modified_deep_sleep_net(fold_ids, all_files, args.total_fold, args.output_dir + "/modified_deep_sleep")
     else:
         print("Unknown model. Valid model is : mod_sleep_eeg / mod_deep_sleep")
 
 
-    # load_and_summarize(args.output_dir + "/modified_sleep_eeg")
-    # load_and_summarize(args.output_dir + "/modified_deep_sleep")
-    # train_modified_sleep_eeg_net([17], all_files, 20, args.output_dir + "/modified_sleep_eeg")
-    # train_modified_deep_sleep_net([17], all_files, 20, args.output_dir + "/modified_deep_sleep")
+def summarize_mode(args):
+    load_and_summarize(args.output_dir)
+
+
+DEBUG = True
+
+
+def debug_f(f, *args):
+    if DEBUG:
+        f(*args)
+
+
+def print_debug(text):
+    debug_f(print, text)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter)
+
+    parser.add_argument("--run", type=str,
+                        default="train",
+                        help="running mode: train / summarize."
+                             "\n+ train: Training. Need to specfiy data_dir, output_dir, fold_ids, model and total_fold"
+                             "\n+ summarize: View result of the last run in which the result is stored in `output_dir`"
+                        )
+
+    parser.add_argument("--data_dir", type=str,
+                        default="data/sc_eeg_fpz_cz",
+                        help="directory contain extracted channels")
+    parser.add_argument("--output_dir", type=str,
+                        default="output/sc_eeg_fpz_cz",
+                        help="Directory to store model, progress, result")
+    parser.add_argument("--fold_ids", type=str,
+                        default="0",
+                        help="fold/folds to train, each valid fold from [0 to total_fold-1]."
+                             "\n+ Can be a single fold, for example: 0 - the first fold, or 19 - the last fold in 20-fold cross validation"
+                             "\n+ Can contain multiple folds, separate by comma `,`, for example: 0,1,2."
+                             "\n+ -1 to train on all folds")
+    parser.add_argument("--model", type=str,
+                        default="mod_sleep_eeg",
+                        help="model to train and evaluate performance"
+                             "\n+ mod_sleep_eeg: Modified SleepEEG - using CNNS"
+                             "\n+ mod_deep_sleep: Modified DeepSleep - using CNNs + Bi-LSTMs")
+    parser.add_argument("--total_fold", type=int,
+                        default=20,
+                        help="Number of fold")
+
+    args = parser.parse_args()
+    running_mode = args.run
+    print("Running mode: %s" % running_mode)
+    if running_mode == "train":
+        training_mode(args)
+    elif running_mode == "summarize":
+        summarize_mode(args)
+    else:
+        parser.print_help()
